@@ -1,31 +1,53 @@
+from django.conf import settings
+from django.utils.module_loading import import_string
 from rest_framework.renderers import JSONRenderer
 from rest_framework import status
 
 
+# --- Helper function to load the formatter ---
+def get_formatter():
+    """
+    Gets the formatter class from Django settings, with a fallback to the default.
+    """
+    formatter_path = getattr(
+        settings,
+        "UNIFIED_RESPONSE_FORMATTER_CLASS",
+        "django_unified_response.formatters.ResponseFormatter",
+    )
+    return import_string(formatter_path)()
+
+
 class UnifiedJSONRenderer(JSONRenderer):
     """
-    A custom renderer that wraps all successful API responses in a standard format.
+    A custom renderer that uses a pluggable formatter to wrap all successful API responses.
     """
 
     def render(self, data, accepted_media_type=None, renderer_context=None):
         """
         Renders the data into the final JSON format.
         """
+        formatter = get_formatter()
         response = renderer_context.get("response")
 
-        # Check if the response is successful (2xx status code).
-        # Error responses are already formatted by the exception handler.
         if response and status.is_success(response.status_code):
-            # For successful responses, wrap the data in our standard format.
-            # We also check to prevent double-wrapping.
-            if not (isinstance(data, dict) and data.get("status") == "success"):
-                formatted_data = {"status": "success", "data": data}
+            # For successful responses, we need to extract any potential 'meta' data
+            # passed along with the DRF Response object.
+            meta_data = None
+            if isinstance(data, dict):
+                # We pop 'meta' so it's not included in the main 'data' field
+                meta_data = data.pop("meta", None)
+
+            # We check to prevent double-wrapping.
+            if not (
+                isinstance(data, dict) and data.get("status") in ["success", "error"]
+            ):
+                formatted_data = formatter.format_success(
+                    data=data, status_code=response.status_code, meta=meta_data
+                )
             else:
                 formatted_data = data
         else:
-            # For error responses, the data is already formatted by our
-            # custom exception handler. We just pass it through.
+            # Error responses are already formatted by the handler.
             formatted_data = data
 
-        # Call the parent class's render method to serialize the data to JSON.
         return super().render(formatted_data, accepted_media_type, renderer_context)
