@@ -36,7 +36,7 @@ def custom_exception_handler(exc, context):
         payload = formatter.format_error(
             message=exc.default_detail,
             error_code=exc.error_code,
-            errors=exc.detail if isinstance(exc.detail, (dict, list)) else None,
+            errors=exc.detail,
         )
         return Response(payload, status=exc.status_code)
 
