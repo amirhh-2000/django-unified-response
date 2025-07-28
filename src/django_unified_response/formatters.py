@@ -1,11 +1,11 @@
-class ResponseFormatter:
+class DefaultResponseFormatter:
     """
-    Default formatter for API responses.
-    This class can be swapped out in settings to provide a custom response structure.
+    The default formatter for API responses.
+    Developers can inherit from this class and override only the methods
+    they need to change.
     """
 
-    @staticmethod
-    def format_success(data, status_code=200, message="Success", meta=None):
+    def format_success(self, data, status_code=200, message="Success", meta=None):
         """
         Formats a successful response.
         """
@@ -16,8 +16,9 @@ class ResponseFormatter:
             "meta": meta or {},
         }
 
-    @staticmethod
-    def format_error(message, error_code, errors=None, status_code=400, meta=None):
+    def format_error(
+        self, message, error_code, errors=None, status_code=400, meta=None
+    ):
         """
         Formats an error response.
         """

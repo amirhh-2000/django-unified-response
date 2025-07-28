@@ -20,7 +20,7 @@ def get_formatter():
     formatter_path = getattr(
         settings,
         "UNIFIED_RESPONSE_FORMATTER_CLASS",
-        "django_unified_response.formatters.ResponseFormatter",
+        "django_unified_response.formatters.DefaultResponseFormatter",
     )
     return import_string(formatter_path)()
 

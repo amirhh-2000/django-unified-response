@@ -1,55 +1,56 @@
 # Django Unified Response
 
-A reusable Django app that standardizes JSON responses for Django REST Framework APIs, ensuring consistency and customization.
+A reusable Django app that provides standardized, consistent, and customizable JSON responses for your Django REST Framework APIs.
 
-## ✨ Features
+## Features
 
-- **Unified Success Response**: Wraps all successful responses in a consistent `{"status": "success", "data": ...}` structure.
-- **Unified Error Response**: Catches and formats exceptions (validation, authentication, etc.) into a standard `{"status": "error", "message": ..., "error_code": ...}` structure.
-- **Custom Exceptions**: Includes high-level exceptions like `NotFoundException` and `IntegrityException` for common API scenarios.
-- **Pluggable & Customizable**: Define a project-wide custom response structure with your own formatter class.
-- **Metadata Support**: Add extra metadata (e.g., pagination, request IDs) via a `meta` key.
+* **Unified Success Response:** All successful responses are wrapped in a consistent `{"status": "success", "data": ...}` structure.
+* **Unified Error Response:** All exceptions (validation, authentication, custom errors, etc.) are caught and returned in a consistent `{"status": "error", "message": ..., "error_code": ...}` structure.
+* **Custom Exceptions:** Ships with a set of clear, high-level exceptions (`NotFoundException`, `IntegrityException`, etc.) for common API scenarios.
+* **Pluggable & Customizable:** Don't like the default format? You can provide your own formatter class to define a project-wide custom response structure.
+* **Metadata Support:** Easily pass extra metadata (e.g., pagination, request IDs) in your responses via a `meta` key.
 
-## 📦 Installation
+## Installation
 
 Install the package from PyPI:
 
 ```bash
 pip install django-unified-response
-```
+````
 
-For local development, navigate to the project root and install in editable mode:
+Or, if you are developing locally, navigate to the project root and install in editable mode:
 
 ```bash
 pip install -e .
 ```
 
-## 🚀 Quick Start & Configuration
+## Quick Start & Configuration
 
-1. Ensure `rest_framework` is in your `INSTALLED_APPS` in `settings.py`. No need to add `django_unified_response` as it contains no models or template tags.
+1.  Ensure `rest_framework` is in your `INSTALLED_APPS` in `settings.py`. You do **not** need to add `django_unified_response` to `INSTALLED_APPS` as it doesn't contain any models or template tags.
 
-2. Configure Django REST Framework in `settings.py` to use the custom exception handler and renderer:
+2.  Configure Django REST Framework in your `settings.py` to use the custom exception handler and renderer.
 
-   ```python
-   # settings.py
-   REST_FRAMEWORK = {
-       'DEFAULT_RENDERER_CLASSES': [
-           'django_unified_response.renderers.UnifiedJSONRenderer',
-           # Optional: Include for DRF's browsable API
-           'rest_framework.renderers.BrowsableAPIRenderer',
-       ],
-       'EXCEPTION_HANDLER': 'django_unified_response.handlers.custom_exception_handler',
-   }
-   ```
+    ```python
+    # settings.py
 
-## 🛠️ Usage
+    REST_FRAMEWORK = {
+        'DEFAULT_RENDERER_CLASSES': [
+            'django_unified_response.renderers.UnifiedJSONRenderer',
+            # Add BrowsableAPIRenderer if you want to use the DRF web interface for testing
+            'rest_framework.renderers.BrowsableAPIRenderer',
+        ],
+        'EXCEPTION_HANDLER': 'django_unified_response.handlers.custom_exception_handler',
+    }
+    ```
+
+## How to Use
 
 ### Success Responses
 
-Return a standard DRF `Response` object, and the library formats it automatically:
+Your views will now automatically return formatted success responses. You just need to return a standard DRF `Response` object.
 
 ```python
-# views.py
+# in your views.py
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
@@ -59,24 +60,24 @@ class MyView(APIView):
         return Response(payload)
 ```
 
-**Output**:
+The client will receive:
 
 ```json
 {
-  "status": "success",
-  "message": "Success",
-  "data": {
-    "id": 1,
-    "name": "Test Item"
-  },
-  "meta": {}
+    "status": "success",
+    "message": "Success",
+    "data": {
+        "id": 1,
+        "name": "Test Item"
+    },
+    "meta": {}
 }
 ```
 
-To include metadata, add a `meta` key:
+To include metadata, add a `meta` key to your response dictionary. The renderer will automatically separate it.
 
 ```python
-# views.py
+# in your views.py
 def get(self, request):
     payload = {
         "items": [{"id": 1}, {"id": 2}],
@@ -85,55 +86,41 @@ def get(self, request):
     return Response(payload)
 ```
 
-**Output**:
-
-```json
-{
-  "status": "success",
-  "message": "Success",
-  "data": {
-    "items": [{ "id": 1 }, { "id": 2 }]
-  },
-  "meta": {
-    "pagination": { "count": 2, "page": 1 }
-  }
-}
-```
-
 ### Error Responses
 
-#### Standard DRF Exceptions
+#### Using Standard DRF Exceptions
 
-The library formats DRF exceptions automatically:
+The library will automatically catch and format default DRF exceptions. For example, using a serializer:
 
 ```python
-# views.py
+# in your views.py
 def post(self, request):
     serializer = MySerializer(data=request.data)
+    # This will raise a DRF ValidationError, which our handler will format
     serializer.is_valid(raise_exception=True)
     return Response(serializer.data, status=201)
 ```
 
-**Output** (on validation failure):
+The client will receive a formatted `validation_error`:
 
 ```json
 {
-  "status": "error",
-  "message": "Input validation failed.",
-  "error_code": "validation_error",
-  "errors": {
-    "email": ["Enter a valid email address."]
-  },
-  "meta": {}
+    "status": "error",
+    "message": "Input validation failed.",
+    "error_code": "validation_error",
+    "errors": {
+        "email": [ "Enter a valid email address." ]
+    },
+    "meta": {}
 }
 ```
 
-#### Custom Library Exceptions
+#### Using Custom Library Exceptions
 
-Use built-in exceptions for specific errors:
+For more specific business logic errors, import and raise the custom exceptions from the library.
 
 ```python
-# views.py
+# in your views.py
 from django_unified_response.exceptions import NotFoundException, IntegrityException
 from django.db import IntegrityError
 from my_app.models import Product
@@ -142,43 +129,62 @@ def get_product(request, pk):
     try:
         product = Product.objects.get(pk=pk)
     except Product.DoesNotExist:
-        raise NotFoundException()  # Returns 404
+        raise NotFoundException() # Returns a formatted 404
 
 def create_product(request):
     try:
-        # ... create product logic ...
+        # ... logic to create product ...
     except IntegrityError:
-        raise IntegrityException("A product with this SKU already exists.")  # Returns 409
+        # Returns a formatted 409 Conflict
+        raise IntegrityException("A product with this SKU already exists.")
 ```
 
-## ⚙️ Advanced Customization
+## Advanced Customization
 
-Customize the response structure by creating a formatter class:
+If the default response structure doesn't fit your needs, you can define your own global response format. The library is designed to be flexible, just like Django itself.
 
-1. **Create a formatter class** with `format_success` and `format_error` methods:
+1.  **Create a new formatter class** anywhere in your Django project. It should inherit from `django_unified_response.formatters.DefaultResponseFormatter`. You only need to override the methods you want to change.
 
-   ```python
-   # my_app/formatters.py
-   class CustomResponseFormatter:
-       @staticmethod
-       def format_success(data, status_code=200, message="OK", meta=None):
-           return {"ok": True, "result": data, "meta": meta or {}}
+    For example, if you only want to change the error format but keep the success format the same, you can do this:
 
-       @staticmethod
-       def format_error(message, error_code, errors=None, status_code=400, meta=None):
-           return {"ok": False, "error": {"code": error_code, "message": message, "details": errors}, "meta": meta or {}}
-   ```
+    ```python
+    # my_app/formatters.py
+    from django_unified_response.formatters import DefaultResponseFormatter
 
-2. **Update `settings.py`** to use the custom formatter:
+    class CustomResponseFormatter(DefaultResponseFormatter):
+        # The format_success method is inherited and works as before.
+        # We only override format_error.
+        def format_error(self, message, error_code, errors=None, status_code=400, meta=None):
+            return {
+                "ok": False,
+                "error": {
+                    "code": error_code,
+                    "message": message,
+                    "details": errors
+                },
+                "meta": meta or {}
+            }
+    ```
 
-   ```python
-   # settings.py
-   UNIFIED_RESPONSE_FORMATTER_CLASS = 'my_app.formatters.CustomResponseFormatter'
-   ```
+2.  **Update your `settings.py`** to point to your new class:
 
-All responses will now use your custom structure.
+    ```python
+    # settings.py
 
-## 📚 Notes
+    # Point to your custom formatter class
+    UNIFIED_RESPONSE_FORMATTER_CLASS = 'my_app.formatters.CustomResponseFormatter'
+    ```
 
-- Ensure compatibility with Django REST Framework versions in your project.
-- Test custom formatters thoroughly to avoid breaking response consistency.
+That's it\! Your project will now use your custom error format while still using the library's default success format.
+
+## Contributing
+Contributions are welcome! If you have a feature request, bug report, or want to improve the library, please follow these steps:
+
+1. Fork the repository on GitHub.
+2. Create a new branch for your feature or bug fix.
+3. Make your changes and add tests to cover them.
+4. Ensure all tests pass by running them from the test_project directory.
+5. Submit a pull request with a clear description of your changes.
+
+## License
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
