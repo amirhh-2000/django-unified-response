@@ -1,3 +1,6 @@
+from django.conf import settings
+from django.utils.module_loading import import_string
+from django.http import Http404
 from rest_framework.views import exception_handler
 from rest_framework.response import Response
 from rest_framework import status
@@ -6,66 +9,71 @@ from rest_framework.exceptions import (
     NotAuthenticated,
     PermissionDenied,
 )
-from django.http import Http404
 from .exceptions import BaseAPIException
+
+
+# --- Helper function to load the formatter ---
+def get_formatter():
+    """
+    Gets the formatter class from Django settings, with a fallback to the default.
+    """
+    formatter_path = getattr(
+        settings,
+        "UNIFIED_RESPONSE_FORMATTER_CLASS",
+        "django_unified_response.formatters.ResponseFormatter",
+    )
+    return import_string(formatter_path)()
 
 
 def custom_exception_handler(exc, context):
     """
-    Custom exception handler that catches our custom exceptions first,
-    and then provides specific codes for standard DRF exceptions.
+    Custom exception handler that uses a pluggable formatter class.
     """
-    # First, check if the exception is one of our custom exceptions
-    if isinstance(exc, BaseAPIException):
-        error_payload = {
-            "status": "error",
-            "message": exc.default_detail,
-            "error_code": exc.error_code,
-            "errors": exc.detail if isinstance(exc.detail, (dict, list)) else None,
-        }
-        return Response(error_payload, status=exc.status_code)
+    formatter = get_formatter()
 
-    # If it's not a custom exception, fall back to DRF's default handler
+    # Handle our custom exceptions first
+    if isinstance(exc, BaseAPIException):
+        payload = formatter.format_error(
+            message=exc.default_detail,
+            error_code=exc.error_code,
+            errors=exc.detail if isinstance(exc.detail, (dict, list)) else None,
+        )
+        return Response(payload, status=exc.status_code)
+
+    # Fall back to DRF's default handler
     response = exception_handler(exc, context)
 
-    # If DRF handled the exception, we'll format it with a specific error code
+    # If DRF handled it, format it with our formatter
     if response is not None:
-        error_payload = {
-            "status": "error",
-            "message": "An error occurred.",
-            "error_code": "server_error",  # Default code
-            "errors": response.data,
-        }
-
-        # Determine the error code based on the original exception type
         if isinstance(exc, ValidationError):
-            error_payload["message"] = "Input validation failed."
-            error_payload["error_code"] = "validation_error"
+            payload = formatter.format_error(
+                "Input validation failed.", "validation_error", response.data
+            )
         elif isinstance(exc, (NotAuthenticated)):
-            error_payload["message"] = (
-                "Authentication credentials were not provided or are invalid."
+            payload = formatter.format_error(
+                "Authentication credentials were not provided or are invalid.",
+                "authentication_failed",
+                response.data,
             )
-            error_payload["error_code"] = "authentication_failed"
         elif isinstance(exc, PermissionDenied):
-            error_payload["message"] = (
-                "You do not have permission to perform this action."
+            payload = formatter.format_error(
+                "You do not have permission to perform this action.",
+                "permission_denied",
+                response.data,
             )
-            error_payload["error_code"] = "permission_denied"
         elif isinstance(exc, Http404):
-            error_payload["message"] = "The requested resource was not found."
-            error_payload["error_code"] = "not_found"
-            # For 404, we can clean up the errors field
-            if "detail" in error_payload["errors"]:
-                error_payload["errors"] = None
+            payload = formatter.format_error(
+                "The requested resource was not found.", "not_found"
+            )
+        else:
+            payload = formatter.format_error(
+                "An error occurred.", "server_error", response.data
+            )
 
-        response.data = error_payload
-        return response
+        return Response(payload, status=response.status_code)
 
-    # For any completely unhandled exception, return a generic 500 error
-    error_payload = {
-        "status": "error",
-        "message": "A server error occurred, please try again later.",
-        "error_code": "server_error",
-        "errors": None,
-    }
-    return Response(error_payload, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    # For any unhandled exception, return a generic 500 error
+    payload = formatter.format_error(
+        "A server error occurred, please try again later.", "server_error"
+    )
+    return Response(payload, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
