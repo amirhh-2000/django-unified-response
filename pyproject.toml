@@ -1,0 +1,23 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "django-unified-response"
+version = "0.1.0"
+authors = [{ name = "Amir Hossein", email = "amirse7997@gmail.com" }]
+description = "A Django library for standardized API responses."
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Framework :: Django",
+    "Intended Audience :: Developers",
+]
+dependencies = ["django>=3.2", "djangorestframework>=3.12"]
+
+[project.urls]
+"Homepage" = "https://github.com/amirhh-2000/django-unified-response"
+"Bug Tracker" = "https://github.com/amirhh-2000/django-unified-response/issues"
