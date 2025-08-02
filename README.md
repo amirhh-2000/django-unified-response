@@ -1,6 +1,8 @@
 # Django Unified Response
 [![PyPI version](https://badge.fury.io/py/django-unified-response.svg)](https://badge.fury.io/py/django-unified-response)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python Versions](https://img.shields.io/pypi/pyversions/django-unified-response.svg)](https://pypi.org/project/django-unified-response/)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 A reusable Django app that provides standardized, consistent, and customizable JSON responses for your Django REST Framework APIs.
 
