@@ -29,7 +29,6 @@ A reusable Django app that provides standardized, consistent, and customizable J
 ```bash
 uv pip install django-unified-response
 ```
-````
 
 ### Using pip
 
