@@ -1,6 +1,3 @@
-Here's an improved README file that incorporates the Makefile, uv package manager, and modern development practices:
-
-````markdown
 # Django Unified Response
 
 [![PyPI version](https://badge.fury.io/py/django-unified-response.svg)](https://badge.fury.io/py/django-unified-response)
@@ -316,6 +313,3 @@ Key improvements made:
 8. **Improved formatting** with better section organization
 9. **Added links** to changelog and license files
 10. **Modernized the development workflow** to use uv and ruff consistently
-
-This README now properly reflects the modern tooling setup and makes it easy for both users and contributors to get started with the project.
-```
