@@ -1,0 +1,155 @@
+name: Update Changelog
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main]
+  issue_comment:
+    types: [created]
+    branches: [main]
+
+jobs:
+  remind-changelog:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    name: Remind about Changelog
+
+    steps:
+      - name: Check for changelog
+        id: check-changelog
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const { data: files } = await github.rest.pulls.listFiles({
+              pull_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo
+            });
+
+            const hasChangelog = files.some(file => file.filename === 'CHANGELOG.md');
+
+            if (!hasChangelog) {
+              await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: `## ⚠️ Changelog Reminder
+
+              This pull request doesn't include changes to \`CHANGELOG.md\`. Please update the changelog to document your changes according to the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format.
+
+              ### Adding Changelog Entries
+
+              1. Add your changes to the **Unreleased** section in \`CHANGELOG.md\`
+              2. Categorize your changes under appropriate headings:
+                 - \`Added\` for new features
+                 - \`Changed\` for changes in existing functionality
+                 - \`Deprecated\` for soon-to-be removed features
+                 - \`Removed\` for now removed features
+                 - \`Fixed\` for any bug fixes
+                 - \`Security\` in case of vulnerabilities
+              3. Include a reference to this pull request: \`[#${context.issue.number}](${context.event.pull_request.html_url})\`
+
+              Thank you for maintaining our changelog! 🙏`
+              });
+            }
+
+            return hasChangelog;
+
+      - name: Add label if no changelog
+        if: steps.check-changelog.outputs.result == 'false'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            await github.rest.issues.addLabels({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: ['needs-changelog']
+            });
+
+  add-changelog:
+    if: github.event_name == 'issue_comment' && github.event.comment.body.includes('/add-changelog')
+    runs-on: ubuntu-latest
+    name: Add Changelog Entry
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Add changelog entry
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+
+            // Read current changelog
+            const changelogPath = path.join(process.cwd(), 'CHANGELOG.md');
+            let changelog = fs.existsSync(changelogPath) ? fs.readFileSync(changelogPath, 'utf8') : '# Changelog\n\n';
+
+            // Get PR information
+            const { data: pr } = await github.rest.pulls.get({
+              pull_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo
+            });
+
+            // Get PR labels
+            const { data: labels } = await github.rest.issues.listLabelsOnIssue({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo
+            });
+
+            // Determine category based on labels
+            let category = 'Changed';
+            if (labels.some(label => label.name === 'feature')) category = 'Added';
+            if (labels.some(label => label.name === 'bug')) category = 'Fixed';
+            if (labels.some(label => label.name === 'documentation')) category = 'Changed';
+            if (labels.some(label => label.name === 'security')) category = 'Security';
+
+            // Create changelog entry
+            const entry = `### ${category}\n\n- ${pr.title} ([#${context.issue.number}](${pr.html_url}))\n`;
+
+            // Insert entry after "## [Unreleased]" section
+            const unreleasedIndex = changelog.indexOf('## [Unreleased]');
+            if (unreleasedIndex !== -1) {
+              const insertIndex = changelog.indexOf('\n', unreleasedIndex) + 1;
+              changelog = changelog.slice(0, insertIndex) + entry + changelog.slice(insertIndex);
+            } else {
+              // If no Unreleased section, add one
+              changelog = `## [Unreleased]\n\n${entry}\n${changelog}`;
+            }
+
+            // Write updated changelog
+            fs.writeFileSync(changelogPath, changelog);
+
+            // Commit and push
+            await exec.exec('git', ['config', 'user.name', 'github-actions']);
+            await exec.exec('git', ['config', 'user.email', 'github-actions@github.com']);
+            await exec.exec('git', ['add', 'CHANGELOG.md']);
+            await exec.exec('git', ['commit', '-m', `docs: Add changelog entry for PR #${context.issue.number} [skip ci]`]);
+            await exec.exec('git', ['push']);
+
+            // Add comment
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '✅ Changelog entry has been added automatically!'
+            });
+
+            // Remove label if present
+            try {
+              await github.rest.issues.removeLabel({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name: 'needs-changelog'
+              });
+            } catch (e) {
+              // Label might not exist
+            }
