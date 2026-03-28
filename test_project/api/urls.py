@@ -23,4 +23,9 @@ urlpatterns = [
         views.IntegrityErrorView.as_view(),
         name="integrity_error",
     ),
+    path(
+        "paginated/",
+        views.PaginatedMockView.as_view(),
+        name="test_paginated",
+    ),
 ]

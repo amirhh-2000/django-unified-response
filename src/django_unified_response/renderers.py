@@ -2,6 +2,8 @@ from rest_framework.renderers import JSONRenderer
 
 from django_unified_response.conf import dur_settings
 
+from .utils import extract_paginated_data
+
 
 class UnifiedJSONRenderer(JSONRenderer):
     """
@@ -24,18 +26,27 @@ class UnifiedJSONRenderer(JSONRenderer):
         if 200 <= response.status_code < 300:
             formatter = dur_settings.FORMATTER_CLASS()
 
-            if isinstance(data, dict):
-                actual_data = data.get("data", data) if "data" in data else data
-                actual_meta = data.get("meta", {})
+            paginated_data, paginated_meta = extract_paginated_data(data)
+            if paginated_data is not None:
+                actual_data = paginated_data
+                actual_meta = paginated_meta
 
-                if "data" not in data and "meta" in actual_data:
-                    actual_data = {k: v for k, v in actual_data.items() if k != "meta"}
             else:
-                actual_data = data
-                actual_meta = {}
+                if isinstance(data, dict):
+                    actual_data = data.get("data", data) if "data" in data else data
+                    actual_meta = data.get("meta", {})
+
+                    if "data" not in data and "meta" in actual_data:
+                        actual_data = {
+                            k: v for k, v in actual_data.items() if k != "meta"
+                        }
+                else:
+                    actual_data = data
+                    actual_meta = {}
 
             formatted_data = formatter.format_success(
-                data=actual_data, meta=actual_meta
+                data=actual_data,
+                meta=actual_meta,
             )
             return super().render(formatted_data, accepted_media_type, renderer_context)
 

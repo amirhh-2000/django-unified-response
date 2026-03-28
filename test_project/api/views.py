@@ -33,3 +33,20 @@ class IntegrityErrorView(APIView):
 
     def get(self, request):
         raise IntegrityException("This item already exists in the database.")
+
+
+class PaginatedMockView(APIView):
+    """Tests the automatic extraction of DRF paginated responses."""
+
+    def get(self, request):
+        paginated_data = {
+            "count": 42,
+            "next": "http://localhost:8000/api/paginated/?page=3",
+            "previous": "http://localhost:8000/api/paginated/?page=1",
+            "results": [
+                {"id": 1, "name": "Amir"},
+                {"id": 2, "name": "Deniz"},
+                {"id": 3, "name": "David"},
+            ],
+        }
+        return Response(paginated_data)
