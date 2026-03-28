@@ -128,11 +128,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # --- DJANGO UNIFIED RESPONSE CONFIGURATION ---
 REST_FRAMEWORK = {
     "DEFAULT_RENDERER_CLASSES": [
-        # Use our custom renderer
         "django_unified_response.renderers.UnifiedJSONRenderer",
-        # Add browsable API for easy testing in the browser
-        "rest_framework.renderers.BrowsableAPIRenderer",
     ],
-    # Use our custom exception handler
-    "EXCEPTION_HANDLER": "django_unified_response.handlers.custom_exception_handler",
+    "EXCEPTION_HANDLER": "django_unified_response.handlers.unified_exception_handler",
 }
