@@ -24,10 +24,19 @@ class UnifiedJSONRenderer(JSONRenderer):
         if 200 <= response.status_code < 300:
             formatter = dur_settings.FORMATTER_CLASS()
 
-            # TODO: In the future, extract pagination data from 'data' into 'meta'
-            meta = {}
+            if isinstance(data, dict):
+                actual_data = data.get("data", data) if "data" in data else data
+                actual_meta = data.get("meta", {})
 
-            unified_data = formatter.format_success(data=data, meta=meta)
-            return super().render(unified_data, accepted_media_type, renderer_context)
+                if "data" not in data and "meta" in actual_data:
+                    actual_data = {k: v for k, v in actual_data.items() if k != "meta"}
+            else:
+                actual_data = data
+                actual_meta = {}
+
+            formatted_data = formatter.format_success(
+                data=actual_data, meta=actual_meta
+            )
+            return super().render(formatted_data, accepted_media_type, renderer_context)
 
         return super().render(data, accepted_media_type, renderer_context)
