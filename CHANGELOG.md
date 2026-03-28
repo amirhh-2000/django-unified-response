@@ -13,6 +13,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GitHub Actions CI/CD pipeline setup
 - Code quality tools integration (ruff, pytest, bandit)
 - Development workflow with Makefile and uv package manager
+- **Core components: `conf.py` (zero-config), `handlers.py` (DRF exception taming), and `renderers.py` (smart success formatting)**
+
+### Fixed
+
+- **Smart extraction of `meta` and `data` in `UnifiedJSONRenderer` to prevent nested payloads**
 
 ## [0.1.0] - 2024-01-XX
 
