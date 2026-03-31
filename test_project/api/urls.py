@@ -33,4 +33,9 @@ urlpatterns = [
         views.RawBypassView.as_view(),
         name="test_bypass",
     ),
+    path(
+        "camel-case/",
+        views.CamelCaseView.as_view(),
+        name="camelcase",
+    ),
 ]

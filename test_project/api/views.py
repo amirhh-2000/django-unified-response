@@ -59,3 +59,19 @@ class RawBypassView(APIView):
 
     def get(self, request):
         return Response({"message": "I am a rebel! No unified response for me!"})
+
+
+class CamelCaseView(APIView):
+    def get(self, request):
+        complex_data = {
+            "user_profile": {
+                "first_name": "Amir",
+                "last_name": "HH",
+                "is_active_user": True,
+            },
+            "recent_orders": [
+                {"order_id": 101, "total_price": 5000},
+                {"order_id": 102, "total_price": 8500},
+            ],
+        }
+        return Response(complex_data)

@@ -2,7 +2,7 @@ from rest_framework.renderers import JSONRenderer
 
 from django_unified_response.conf import dur_settings
 
-from .utils import extract_paginated_data
+from .utils import camelize_keys, extract_paginated_data
 
 
 class UnifiedJSONRenderer(JSONRenderer):
@@ -51,6 +51,10 @@ class UnifiedJSONRenderer(JSONRenderer):
                 data=actual_data,
                 meta=actual_meta,
             )
+
+            if dur_settings.CAMELCASE_KEYS:
+                formatted_data = camelize_keys(formatted_data)
+
             return super().render(formatted_data, accepted_media_type, renderer_context)
 
         return super().render(data, accepted_media_type, renderer_context)

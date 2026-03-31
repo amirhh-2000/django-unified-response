@@ -132,3 +132,7 @@ REST_FRAMEWORK = {
     ],
     "EXCEPTION_HANDLER": "django_unified_response.handlers.unified_exception_handler",
 }
+
+DUR_SETTINGS = {
+    "CAMELCASE_KEYS": True,
+}

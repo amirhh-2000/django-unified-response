@@ -1,6 +1,7 @@
 from rest_framework.views import exception_handler
 
 from django_unified_response.conf import dur_settings
+from django_unified_response.utils import camelize_keys
 
 
 def unified_exception_handler(exc, context):
@@ -60,6 +61,9 @@ def unified_exception_handler(exc, context):
             message=message,
             details=None,
         )
+
+    if dur_settings.CAMELCASE_KEYS:
+        unified_data = camelize_keys(unified_data)
 
     response.data = unified_data
     return response

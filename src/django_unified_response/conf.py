@@ -5,7 +5,7 @@ from django.utils.module_loading import import_string
 DEFAULTS = {
     "ENABLE": True,
     "FORMATTER_CLASS": "django_unified_response.formatters.DefaultFormatter",
-    "CAMEL_CASE_RESPONSE": False,
+    "CAMELCASE_KEYS": False,
     "CUSTOM_ERROR_CODES": {},
     "BYPASS_URLS": [],
 }
