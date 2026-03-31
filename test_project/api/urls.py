@@ -28,4 +28,9 @@ urlpatterns = [
         views.PaginatedMockView.as_view(),
         name="test_paginated",
     ),
+    path(
+        "bypass/",
+        views.RawBypassView.as_view(),
+        name="test_bypass",
+    ),
 ]

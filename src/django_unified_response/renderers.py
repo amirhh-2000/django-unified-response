@@ -15,8 +15,11 @@ class UnifiedJSONRenderer(JSONRenderer):
         if not dur_settings.ENABLE:
             return super().render(data, accepted_media_type, renderer_context)
 
-        response = renderer_context.get("response") if renderer_context else None
+        view = renderer_context.get("view") if renderer_context else None
+        if view and getattr(view, "_bypass_unified_response", False):
+            return super().render(data, accepted_media_type, renderer_context)
 
+        response = renderer_context.get("response") if renderer_context else None
         if response is None:
             return super().render(data, accepted_media_type, renderer_context)
 

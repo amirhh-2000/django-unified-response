@@ -10,6 +10,10 @@ def unified_exception_handler(exc, context):
     """
     response = exception_handler(exc, context)
 
+    view = context.get("view")
+    if view and getattr(view, "_bypass_unified_response", False):
+        return response
+
     if response is None or not dur_settings.ENABLE:
         return response
 

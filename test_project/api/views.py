@@ -2,6 +2,7 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from django_unified_response.decorators import bypass_unified_response
 from django_unified_response.exceptions import IntegrityException, NotFoundException
 
 
@@ -50,3 +51,11 @@ class PaginatedMockView(APIView):
             ],
         }
         return Response(paginated_data)
+
+
+@bypass_unified_response
+class RawBypassView(APIView):
+    """Tests the bypass decorator (Opt-out)."""
+
+    def get(self, request):
+        return Response({"message": "I am a rebel! No unified response for me!"})
