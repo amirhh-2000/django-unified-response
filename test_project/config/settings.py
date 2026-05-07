@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     # 3rd party apps
     "rest_framework",
+    "drf_spectacular",
     # Local apps
     "api",
 ]
@@ -131,6 +132,7 @@ REST_FRAMEWORK = {
         "django_unified_response.renderers.UnifiedJSONRenderer",
     ],
     "EXCEPTION_HANDLER": "django_unified_response.handlers.unified_exception_handler",
+    "DEFAULT_SCHEMA_CLASS": "django_unified_response.schema.UnifiedResponseAutoSchema",
 }
 
 DUR_SETTINGS = {
