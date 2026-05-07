@@ -8,7 +8,7 @@ version = "0.1.0"
 authors = [{ name = "Amir Hossein", email = "amirse7997@gmail.com" }]
 description = "A Django library for standardized API responses."
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.10"
 classifiers = [
     "Development Status :: 4 - Beta",
     "Environment :: Web Environment",
@@ -22,10 +22,10 @@ classifiers = [
     "Operating System :: OS Independent",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Internet :: WWW/HTTP",
     "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
     "Topic :: Software Development :: Libraries :: Python Modules",
@@ -33,13 +33,8 @@ classifiers = [
 dependencies = ["django>=3.2", "djangorestframework>=3.12"]
 
 [project.optional-dependencies]
-dev = [
-    "pytest>=7.0.0",
-    "pytest-django>=4.5.0",
-    "pytest-cov>=4.0.0",
-    "ruff>=0.1.0",
-    "bandit>=1.7.0",
-    "safety>=2.0.0",
+swagger = [
+    "drf-spectacular>=0.26.0",
 ]
 
 [project.urls]
@@ -48,8 +43,8 @@ dev = [
 "Repository" = "https://github.com/amirhh-2000/django-unified-response"
 "Documentation" = "https://github.com/amirhh-2000/django-unified-response#readme"
 
-[tool.uv]
-dev-dependencies = [
+[dependency-groups]
+dev = [
     "pytest>=7.0.0",
     "pytest-django>=4.5.0",
     "pytest-cov>=4.0.0",
