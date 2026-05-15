@@ -21,7 +21,7 @@ if HAS_SPECTACULAR:
         def get_response_serializers(self) -> typing.Any:
             response_serializers = super().get_response_serializers()
 
-            if getattr(self.view, "bypass_unified_response", False):
+            if getattr(self.view, "_bypass_unified_response", False):
                 return response_serializers
 
             if not response_serializers or not isinstance(response_serializers, dict):
