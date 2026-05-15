@@ -21,17 +21,27 @@ def camelize_keys(data):
 
 
 def extract_paginated_data(data):
-    if isinstance(data, dict) and "results" in data and "count" in data:
-        data_copy = data.copy()
+    """
+    Detects paginated DRF responses and extracts 'results' and metadata.
 
-        actual_data = data_copy.pop("results")
-        actual_meta = {
-            "pagination": {
-                "count": data_copy.get("count"),
-                "next": data_copy.get("next"),
-                "previous": data_copy.get("previous"),
-            }
-        }
-        return actual_data, actual_meta
+    Handles both standard PageNumberPagination (has 'count') and
+    other pagination styles like CursorPagination (no 'count').
+    """
+    if isinstance(data, dict) and "results" in data:
+        data_copy = data.copy()
+        results = data_copy.pop("results", None)
+
+        meta = {"pagination": {}}
+        # Common pagination fields
+        for field in ("count", "next", "previous", "cursor"):
+            if field in data_copy:
+                meta["pagination"][field] = data_copy.pop(field)
+
+        # Any remaining top-level keys that are not 'results' are kept
+        # as extra metadata (e.g., custom pagination info).
+        if data_copy:
+            meta["pagination"].update(data_copy)
+
+        return results, meta
 
     return None, None
