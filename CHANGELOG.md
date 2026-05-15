@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Code quality tools integration (ruff, pytest, bandit)
 - Development workflow with Makefile and uv package manager
 - **Core components: `conf.py` (zero-config), `handlers.py` (DRF exception taming), and `renderers.py` (smart success formatting)**
+- Added optional Swagger/OpenAPI support via `drf-spectacular` soft dependency
 
 ### Fixed
 
