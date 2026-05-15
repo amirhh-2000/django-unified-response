@@ -35,6 +35,11 @@ class UnifiedJSONRenderer(JSONRenderer):
                 actual_meta = paginated_meta
 
             else:
+                # The data dict may already follow a partial convention:
+                # 1) {"data": ..., "meta": ...} -> we respect that structure directly.
+                # 2) {"meta": ..., "items": ...} (no "data" key, but "meta" present)
+                #    -> treat the whole dict except "meta" as the payload, and "meta" as metadata.
+                # 3) Any other dict -> the whole dict is the payload, meta is empty.
                 if isinstance(data, dict):
                     actual_data = data.get("data", data) if "data" in data else data
                     actual_meta = data.get("meta", {})
