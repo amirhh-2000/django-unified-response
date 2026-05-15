@@ -31,7 +31,8 @@ class DURSettings:
     @property
     def user_settings(self):
         if not hasattr(self, "_user_settings"):
-            self._user_settings = getattr(settings, "DUR_SETTINGS", {})
+            raw = getattr(settings, "DUR_SETTINGS", {})
+            self._user_settings = self.__check_user_settings(raw)
         return self._user_settings
 
     def __getattr__(self, attr):
