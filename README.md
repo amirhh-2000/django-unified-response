@@ -15,10 +15,11 @@ A reusable Django app that provides standardized, consistent, and customizable J
 - **Custom Exceptions**: Ships with a set of clear, high-level exceptions (`NotFoundException`, `IntegrityException`, etc.) for common API scenarios
 - **Pluggable & Customizable**: Don't like the default format? You can provide your own formatter class to define a project-wide custom response structure
 - **Metadata Support**: Easily pass extra metadata (e.g., pagination, request IDs) in your responses via a `meta` key
+- **Swagger/OpenAPI Support:** Auto-generates unified response schemas (optional soft-dependency via `drf-spectacular`).
 
 ## Requirements
 
-- Python 3.8+
+- Python 3.10+
 - Django 3.2, 4.0, 4.1, or 4.2
 - Django REST Framework 3.12+
 
@@ -34,6 +35,14 @@ uv pip install django-unified-response
 
 ```bash
 pip install django-unified-response
+```
+
+### With Swagger Support (Optional)
+If you want to use the built-in Swagger auto-schema integration:
+```bash
+uv add django-unified-response[swagger]
+# or using pip
+pip install "django-unified-response[swagger]"
 ```
 
 ### Development Installation
@@ -61,9 +70,21 @@ REST_FRAMEWORK = {
         # Add BrowsableAPIRenderer if you want to use the DRF web interface for testing
         'rest_framework.renderers.BrowsableAPIRenderer',
     ],
-    'EXCEPTION_HANDLER': 'django_unified_response.handlers.custom_exception_handler',
+    'EXCEPTION_HANDLER': 'django_unified_response.handlers.unified_exception_handler',
 }
 ```
+
+## Swagger Integration (Optional)
+
+To enable the unified response schema for your API documentation, ensure you have installed the package with the `[swagger]` extra. Then, update your `settings.py`:
+```python
+REST_FRAMEWORK = {
+# ... your other settings
+'DEFAULT_SCHEMA_CLASS': 'django_unified_response.schema.UnifiedResponseAutoSchema',
+}
+```
+This will automatically format your Swagger/OpenAPI response documentation to match the unified structure (e.g., showing `{"success": true, "data": ...}`).
+
 
 ## How to Use
 
@@ -203,7 +224,7 @@ That's it! Your project will now use your custom error format while still using 
 ### Prerequisites
 
 - [uv](https://github.com/astral-sh/uv) package manager
-- Python 3.8+
+- Python 3.10+
 
 ### Setup
 
