@@ -6,8 +6,6 @@ DEFAULTS = {
     "ENABLE": True,
     "FORMATTER_CLASS": "django_unified_response.formatters.DefaultFormatter",
     "CAMELCASE_KEYS": False,
-    "CUSTOM_ERROR_CODES": {},
-    "BYPASS_URLS": [],
 }
 
 IMPORT_STRINGS = [
