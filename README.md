@@ -6,315 +6,331 @@
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Tests](https://github.com/amirhh-2000/django-unified-response/workflows/CI/badge.svg)](https://github.com/amirhh-2000/django-unified-response/actions)
 
-A reusable Django app that provides standardized, consistent, and customizable JSON responses for your Django REST Framework APIs.
+> Wrap every Django REST Framework response in a clean, consistent, and fully customisable JSON envelope — no boilerplate, no weird edge cases.
 
-## Features
+---
 
-- **Unified Success Response**: All successful responses are wrapped in a consistent `{"status": "success", "data": ...}` structure
-- **Unified Error Response**: All exceptions (validation, authentication, custom errors, etc.) are caught and returned in a consistent `{"status": "error", "message": ..., "error_code": ...}` structure
-- **Custom Exceptions**: Ships with a set of clear, high-level exceptions (`NotFoundException`, `IntegrityException`, etc.) for common API scenarios
-- **Pluggable & Customizable**: Don't like the default format? You can provide your own formatter class to define a project-wide custom response structure
-- **Metadata Support**: Easily pass extra metadata (e.g., pagination, request IDs) in your responses via a `meta` key
-- **Swagger/OpenAPI Support:** Auto-generates unified response schemas (optional soft-dependency via `drf-spectacular`).
+## ✨ Why yet another response wrapper?
 
-## Requirements
+- **Zero boilerplate** – all views automatically get the same envelope.
+- **DRF error‑proof** – the messiest validation errors are turned into a predictable, structured format.
+- **Pagination‑aware** – detects standard, cursor, and custom paginators, keeping metadata tidy.
+- **Swagger‑ready** – optional `drf-spectacular` integration generates the exact schemas.
+- **Totally customisable** – replace the envelope globally by writing a formatter class, without touching the library.
 
-- Python 3.10+
-- Django 3.2, 4.0, 4.1, or 4.2
-- Django REST Framework 3.12+
+---
 
-## Installation
+## 📦 What responses look like
 
-### Using uv (recommended)
+### ✅ Success
 
-```bash
-uv pip install django-unified-response
+```json
+{
+    "success": true,
+    "data": { "id": 1, "name": "Test Item" },
+    "meta": {}
+}
 ```
 
-### Using pip
+### ❌ Client error (4xx)
+
+```json
+{
+    "success": false,
+    "error": {
+        "type": "Fail",
+        "code": "validation_error",
+        "message": "Input validation failed.",
+        "details": [
+            { "field": "email", "issue": "Enter a valid email address." }
+        ]
+    }
+}
+```
+
+### 💥 Server error (5xx)
+
+```json
+{
+    "success": false,
+    "error": {
+        "type": "Error",
+        "code": "HTTP_500",
+        "message": "A server error occurred.",
+        "details": null
+    }
+}
+```
+
+---
+
+## ⚙️ Requirements
+
+- Python **3.10+**
+- Django 3.2 / 4.0 / 4.1 / 4.2
+- Django REST Framework 3.12+
+- (Optional) `drf‑spectacular` for OpenAPI schema generation
+
+---
+
+## 🚀 Installation
 
 ```bash
 pip install django-unified-response
 ```
 
-### With Swagger Support (Optional)
-If you want to use the built-in Swagger auto-schema integration:
+### With Swagger support
+
 ```bash
-uv add django-unified-response[swagger]
-# or using pip
 pip install "django-unified-response[swagger]"
 ```
 
-### Development Installation
+---
 
-```bash
-# Clone the repository
-git clone https://github.com/amirhh-2000/django-unified-response.git
-cd django-unified-response
+## 🛠 Quick Start
 
-# Install development dependencies
-make install-dev
-```
-
-## Quick Start & Configuration
-
-1. Ensure `rest_framework` is in your `INSTALLED_APPS` in `settings.py`. You do **not** need to add `django_unified_response` to `INSTALLED_APPS` as it doesn't contain any models or template tags.
-
-2. Configure Django REST Framework in your `settings.py` to use the custom exception handler and renderer:
+1. **No need to add to `INSTALLED_APPS`** – the package has no models.
+2. Configure Django REST Framework in `settings.py`:
 
 ```python
-# settings.py
 REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': [
         'django_unified_response.renderers.UnifiedJSONRenderer',
-        # Add BrowsableAPIRenderer if you want to use the DRF web interface for testing
+        # Keep BrowsableAPIRenderer for the DRF web interface
         'rest_framework.renderers.BrowsableAPIRenderer',
     ],
     'EXCEPTION_HANDLER': 'django_unified_response.handlers.unified_exception_handler',
 }
 ```
 
-## Swagger Integration (Optional)
+That’s it! Every response is now unified.
 
-To enable the unified response schema for your API documentation, ensure you have installed the package with the `[swagger]` extra. Then, update your `settings.py`:
+---
+
+## 🔧 Configuration
+
+All library settings live in the `DUR_SETTINGS` dictionary:
+
 ```python
-REST_FRAMEWORK = {
-# ... your other settings
-'DEFAULT_SCHEMA_CLASS': 'django_unified_response.schema.UnifiedResponseAutoSchema',
+# settings.py
+DUR_SETTINGS = {
+    # Formatter class that defines the envelope (default shown)
+    "FORMATTER_CLASS": "django_unified_response.formatters.DefaultFormatter",
+    # Convert snake_case keys to camelCase
+    "CAMELCASE_KEYS": False,
+    # Temporarily disable the entire wrapper
+    "ENABLE": True,
 }
 ```
-This will automatically format your Swagger/OpenAPI response documentation to match the unified structure (e.g., showing `{"success": true, "data": ...}`).
 
+| Setting           | Type                 | Default                                                 | Description                                            |
+| ----------------- | -------------------- | ------------------------------------------------------- | ------------------------------------------------------ |
+| `FORMATTER_CLASS` | string (import path) | `"django_unified_response.formatters.DefaultFormatter"` | Path to a formatter class (see Advanced Customisation) |
+| `CAMELCASE_KEYS`  | bool                 | `False`                                                 | If `True`, all response keys become camelCase          |
+| `ENABLE`          | bool                 | `True`                                                  | Set to `False` to return raw DRF responses globally    |
 
-## How to Use
+---
 
-### Success Responses
+## 🧪 Usage
 
-Your views will now automatically return formatted success responses. You just need to return a standard DRF `Response` object.
+### Success responses
+
+Return a standard DRF `Response`. The renderer wraps it automatically.
 
 ```python
-# in your views.py
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
 class MyView(APIView):
     def get(self, request):
-        payload = {"id": 1, "name": "Test Item"}
-        return Response(payload)
+        return Response({"id": 1, "name": "Amir"})
 ```
 
-The client will receive:
+**Client receives:**
 
 ```json
 {
-  "status": "success",
-  "message": "Success",
-  "data": {
-    "id": 1,
-    "name": "Test Item"
-  },
-  "meta": {}
+    "success": true,
+    "data": { "id": 1, "name": "Amir" },
+    "meta": {}
 }
 ```
 
-To include metadata, add a `meta` key to your response dictionary. The renderer will automatically separate it.
+### Including metadata
+
+If your response already has `"data"` and/or `"meta"` keys, the renderer respects them:
 
 ```python
-# in your views.py
-def get(self, request):
-    payload = {
-        "items": [{"id": 1}, {"id": 2}],
-        "meta": {"pagination": {"count": 2, "page": 1}}
-    }
-    return Response(payload)
+return Response({
+    "data": {"items": [...]},
+    "meta": {"page": 1, "total": 42}
+})
 ```
 
-### Error Responses
+### Paginated responses
 
-#### Using Standard DRF Exceptions
+The renderer auto‑detects DRF pagination (any class that returns `"results"`), moves the results to `data`, and puts the rest (`count`, `next`, `previous`, `cursor`, etc.) under `meta.pagination`.
 
-The library will automatically catch and format default DRF exceptions. For example, using a serializer:
+### Bypassing the wrapper
+
+Use the decorator on any view to keep the raw DRF response:
 
 ```python
-# in your views.py
-def post(self, request):
-    serializer = MySerializer(data=request.data)
-    # This will raise a DRF ValidationError, which our handler will format
-    serializer.is_valid(raise_exception=True)
-    return Response(serializer.data, status=201)
+from django_unified_response.decorators import bypass_unified_response
+
+@bypass_unified_response
+class HealthCheckView(APIView):
+    def get(self, request):
+        return Response({"status": "ok"})
 ```
 
-The client will receive a formatted `validation_error`:
+### Error responses
 
-```json
-{
-  "status": "error",
-  "message": "Input validation failed.",
-  "error_code": "validation_error",
-  "errors": {
-    "email": ["Enter a valid email address."]
-  },
-  "meta": {}
-}
-```
+#### Standard DRF exceptions
 
-#### Using Custom Library Exceptions
-
-For more specific business logic errors, import and raise the custom exceptions from the library.
+Raised automatically by serializers — the handler formats them.
 
 ```python
-# in your views.py
-from django_unified_response.exceptions import NotFoundException, IntegrityException
-from django.db import IntegrityError
-from my_app.models import Product
+serializer.is_valid(raise_exception=True)  # yields a formatted 4xx
+```
+
+#### Custom library exceptions
+
+Import and raise for business‑logic errors:
+
+```python
+from django_unified_response.exceptions import (
+    NotFoundException,
+    IntegrityException,
+    ValidationException,
+    AuthenticationFailedException,
+)
 
 def get_product(request, pk):
     try:
         product = Product.objects.get(pk=pk)
     except Product.DoesNotExist:
-        raise NotFoundException()  # Returns a formatted 404
+        raise NotFoundException()  # 404, code "not_found"
 
 def create_product(request):
     try:
-        # ... logic to create product ...
+        ...
     except IntegrityError:
-        # Returns a formatted 409 Conflict
-        raise IntegrityException("A product with this SKU already exists.")
+        raise IntegrityException(
+            message="SKU already exists.",
+            details={"sku": "duplicate"}
+        )
 ```
 
-## Advanced Customization
+---
 
-If the default response structure doesn't fit your needs, you can define your own global response format. The library is designed to be flexible, just like Django itself.
+## 📘 Swagger / OpenAPI
 
-1. **Create a new formatter class** anywhere in your Django project. It should inherit from `django_unified_response.formatters.DefaultResponseFormatter`. You only need to override the methods you want to change.
+Install the `[swagger]` extra, then set the schema class:
 
-For example, if you only want to change the error format but keep the success format the same, you can do this:
+```python
+REST_FRAMEWORK = {
+    # ...
+    'DEFAULT_SCHEMA_CLASS': 'django_unified_response.schema.UnifiedResponseAutoSchema',
+}
+```
+
+Your OpenAPI docs will automatically show the unified `success`/`error` shapes.
+
+---
+
+## 🎨 Advanced Customisation
+
+You can replace the entire envelope by writing your own formatter.
+
+1. Subclass `BaseFormatter` (or `DefaultFormatter` to override only parts):
 
 ```python
 # my_app/formatters.py
-from django_unified_response.formatters import DefaultResponseFormatter
+from django_unified_response.formatters import BaseFormatter
 
-class CustomResponseFormatter(DefaultResponseFormatter):
-    # The format_success method is inherited and works as before.
-    # We only override format_error.
-    def format_error(self, message, error_code, errors=None, status_code=400, meta=None):
+class MyFormatter(BaseFormatter):
+    def format_success(self, data, meta=None):
+        return {"ok": True, "result": data, "extra": meta or {}}
+
+    def format_fail(self, error_code, message, details=None):
         return {
             "ok": False,
-            "error": {
+            "problem": {
                 "code": error_code,
-                "message": message,
-                "details": errors
+                "what": message,
+                "fields": details or [],
             },
-            "meta": meta or {}
+        }
+
+    def format_error(self, error_code, message, details=None):
+        return {
+            "ok": False,
+            "problem": {
+                "code": error_code,
+                "what": "Internal error",
+                "trace": message if settings.DEBUG else None,
+            },
         }
 ```
 
-2. **Update your `settings.py`** to point to your new class:
+2. Point to it in `DUR_SETTINGS`:
 
 ```python
-# settings.py
-# Point to your custom formatter class
-UNIFIED_RESPONSE_FORMATTER_CLASS = 'my_app.formatters.CustomResponseFormatter'
+DUR_SETTINGS = {
+    "FORMATTER_CLASS": "my_app.formatters.MyFormatter",
+}
 ```
 
-That's it! Your project will now use your custom error format while still using the library's default success format.
+Every response now follows your own contract.
 
-## Development
+---
+
+## 👩‍💻 Development
 
 ### Prerequisites
 
-- [uv](https://github.com/astral-sh/uv) package manager
+- [uv](https://github.com/astral-sh/uv)
 - Python 3.10+
 
 ### Setup
 
 ```bash
-# Clone the repository
 git clone https://github.com/amirhh-2000/django-unified-response.git
 cd django-unified-response
-
-# Install development dependencies
 make install-dev
 ```
 
-### Available Commands
-
-The project includes a Makefile with convenient commands:
+### Commands
 
 ```bash
-# Install the package
-make install
-
-# Install development dependencies
-make install-dev
-
-# Run tests
-make test
-
-# Run linting checks
-make lint
-
-# Format code
-make format
-
-# Run security checks
-make security
-
-# Clean build artifacts
-make clean
+make install-dev   # install development deps
+make test          # run tests
+make lint          # ruff linter
+make format        # ruff formatter
+make security      # bandit security checks
+make clean         # remove build artifacts
 ```
 
-### Code Quality
+---
 
-We use `ruff` for both linting and formatting:
+## 🤝 Contributing
 
-```bash
-# Format code
-make format
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes and write tests
+4. Run `make lint` and `make test`
+5. Update `CHANGELOG.md` (Keep a Changelog format)
+6. Open a pull request
 
-# Check formatting and linting
-make lint
-```
+---
 
-### Testing
+## 📄 Changelog
 
-```bash
-# Run all tests
-make test
+All notable changes are documented in [CHANGELOG.md](CHANGELOG.md).
 
-# Run tests with coverage
-uv run pytest --cov=django_unified_response --cov-report=term-missing
-```
+---
 
-## Contributing
+## 📜 License
 
-Contributions are welcome! If you have a feature request, bug report, or want to improve the library, please follow these steps:
-
-1. Fork the repository on GitHub
-2. Create a new branch for your feature or bug fix
-3. Make your changes and add tests to cover them
-4. Ensure all code quality checks pass: `make lint`
-5. Ensure all tests pass: `make test`
-6. Update the changelog following the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format
-7. Submit a pull request with a clear description of your changes
-
-### Development Workflow
-
-1. **Install dependencies**: `make install-dev`
-2. **Make changes**: Edit the code
-3. **Format code**: `make format`
-4. **Run linting**: `make lint`
-5. **Run tests**: `make test`
-6. **Update changelog**: Add entry to `CHANGELOG.md`
-7. **Submit PR**: Create a pull request to the main branch
-
-## Changelog
-
-All notable changes to this project will be documented in the [CHANGELOG.md](CHANGELOG.md) file.
-
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-
-## License
-
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+MIT. See [LICENSE](LICENSE).
