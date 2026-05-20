@@ -1,3 +1,5 @@
+from rest_framework import status as http_status
+from rest_framework.response import Response
 from rest_framework.views import exception_handler
 
 from django_unified_response.conf import dur_settings
@@ -15,7 +17,13 @@ def unified_exception_handler(exc, context):
     if view and getattr(view, "_bypass_unified_response", False):
         return response
 
-    if response is None or not dur_settings.ENABLE:
+    if response is None:
+        response = Response(
+            {"detail": str(exc)},
+            status=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+    if not dur_settings.ENABLE:
         return response
 
     formatter = dur_settings.FORMATTER_CLASS()
