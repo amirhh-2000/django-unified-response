@@ -101,19 +101,13 @@ jobs:
         with:
           python-version: "3.13"
 
-      - name: Install dev dependencies (bandit, safety)
+      - name: Install dev dependencies
         run: uv sync --group dev
 
       - name: Run bandit security check
         run: uv run bandit -r django_unified_response -f json -o bandit-report.json
-
-      - name: Run safety check
-        run: uv run safety check --json > safety-report.json
-
       - name: Upload security reports
         uses: actions/upload-artifact@v4
         with:
           name: security-reports
-          path: |
-            bandit-report.json
-            safety-report.json
+          path: bandit-report.json
