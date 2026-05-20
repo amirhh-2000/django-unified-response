@@ -1,0 +1,48 @@
+root = true
+
+# Default for all files (safe fallback)
+[*]
+end_of_line = lf
+charset = utf-8
+trim_trailing_whitespace = true
+insert_final_newline = true
+
+# Python (PEP 8: 4 spaces)
+[*.py]
+indent_style = space
+indent_size = 4
+
+# YAML / YML (workflows, etc.)
+[*.{yml,yaml}]
+indent_style = space
+indent_size = 2
+
+# Markdown
+[*.md]
+indent_style = space
+indent_size = 4
+
+# Makefile (tab required)
+[Makefile]
+indent_style = tab
+indent_size = 4
+
+# JSON
+[*.json]
+indent_style = space
+indent_size = 2
+
+# TOML (usually 2 spaces)
+[*.toml]
+indent_style = space
+indent_size = 2
+
+# INI / CFG
+[*.{ini,cfg}]
+indent_style = space
+indent_size = 4
+
+# Git files
+[.gitattributes]
+indent_style = space
+indent_size = 4
