@@ -26,7 +26,7 @@ jobs:
           python-version: "3.13"
 
       - name: Install dependencies (ruff only)
-        run: uv pip install ruff
+        run: uv pip install --system ruff
 
       - name: Run ruff formatting check
         run: ruff format --check .
@@ -108,7 +108,7 @@ jobs:
         run: uv run bandit -r django_unified_response -f json -o bandit-report.json
 
       - name: Run safety check
-        run: uv run safety check --json --output safety-report.json
+        run: uv run safety check --json > safety-report.json
 
       - name: Upload security reports
         uses: actions/upload-artifact@v4
