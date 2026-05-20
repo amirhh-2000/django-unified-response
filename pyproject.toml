@@ -57,6 +57,7 @@ dev = [
 [tool.ruff]
 line-length = 88
 target-version = "py310"
+exclude = ["test_project"]
 
 [tool.ruff.lint]
 select = [
