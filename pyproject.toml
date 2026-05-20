@@ -85,6 +85,7 @@ line-ending = "auto"
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "tests.settings"
+pythonpath = "."
 python_files = ["tests.py", "test_*.py", "*_tests.py"]
 addopts = "--verbose --tb=short"
 testpaths = ["tests"]
