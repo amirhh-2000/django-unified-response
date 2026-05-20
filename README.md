@@ -2,7 +2,7 @@
 
 [![PyPI version](https://badge.fury.io/py/django-unified-response.svg)](https://badge.fury.io/py/django-unified-response)
 [![Python Support](https://img.shields.io/pypi/pyversions/django-unified-response.svg)](https://pypi.org/project/django-unified-response/)
-[![Django Support](https://img.shields.io/badge/Django-3.2%2C%204.0%2C%204.1%2C%204.2-blue.svg)](https://www.djangoproject.com/)
+[![Django Support](https://img.shields.io/badge/Django-3.2%2C%204.2%2C%205.0-blue.svg)](https://www.djangoproject.com/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Tests](https://github.com/amirhh-2000/django-unified-response/workflows/CI/badge.svg)](https://github.com/amirhh-2000/django-unified-response/actions)
 
