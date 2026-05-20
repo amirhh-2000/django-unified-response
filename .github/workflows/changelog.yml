@@ -21,23 +21,19 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v2
+        uses: astral-sh/setup-uv@v3
         with:
           version: "latest"
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
-
-      - name: Install dependencies
-        run: uv pip install pyyaml
+          python-version: "3.12"
 
       - name: Validate changelog format
         run: |
           python << 'EOF'
           import re
-          import yaml
           from pathlib import Path
 
           changelog_file = Path('CHANGELOG.md')
@@ -72,11 +68,9 @@ jobs:
           changelog_file = Path('CHANGELOG.md')
           content = changelog_file.read_text()
 
-          # Extract Unreleased section
           unreleased_match = re.search(r'## \[Unreleased\](.*?)(?=## \[|$)', content, re.DOTALL)
           if unreleased_match:
               unreleased_content = unreleased_match.group(1)
-              # Check if there are any actual entries (not just empty section)
               if re.search(r'### (Added|Changed|Deprecated|Removed|Fixed|Security).*?\n- ', unreleased_content, re.DOTALL):
                   print("has_entries=true")
                   exit(0)
@@ -86,7 +80,7 @@ jobs:
 
       - name: Comment on missing changelog
         if: steps.check-changelog.outputs.has_entries == 'false'
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           script: |
             await github.rest.issues.createComment({
@@ -138,7 +132,7 @@ jobs:
 
       - name: Add label if no changelog
         if: steps.check-changelog.outputs.has_entries == 'false'
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           script: |
             await github.rest.issues.addLabels({
@@ -160,31 +154,27 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Add structured changelog entry
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           script: |
             const fs = require('fs');
             const path = require('path');
 
-            // Read current changelog
             const changelogPath = path.join(process.cwd(), 'CHANGELOG.md');
             let changelog = fs.existsSync(changelogPath) ? fs.readFileSync(changelogPath, 'utf8') : '# Changelog\n\n';
 
-            // Get PR information
             const { data: pr } = await github.rest.pulls.get({
               pull_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo
             });
 
-            // Get PR labels
             const { data: labels } = await github.rest.issues.listLabelsOnIssue({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo
             });
 
-            // Determine category based on labels
             let category = 'Changed';
             if (labels.some(label => label.name === 'feature' || label.name === 'enhancement')) category = 'Added';
             if (labels.some(label => label.name === 'bug')) category = 'Fixed';
@@ -192,29 +182,23 @@ jobs:
             if (labels.some(label => label.name === 'security')) category = 'Security';
             if (labels.some(label => label.name === 'breaking')) category = 'Changed';
 
-            // Create structured changelog entry
             const entry = `### ${category}\n\n- ${pr.title} ([#${context.issue.number}](${pr.html_url}))\n`;
 
-            // Insert entry in Unreleased section
             const unreleasedPattern = /(## \[Unreleased\]\n\n)/;
             if (unreleasedPattern.test(changelog)) {
               changelog = changelog.replace(unreleasedPattern, `$1${entry}`);
             } else {
-              // If no Unreleased section, add one at the beginning
               changelog = `## [Unreleased]\n\n${entry}\n${changelog}`;
             }
 
-            // Write updated changelog
             fs.writeFileSync(changelogPath, changelog);
 
-            // Commit and push
             await exec.exec('git', ['config', 'user.name', 'github-actions']);
             await exec.exec('git', ['config', 'user.email', 'github-actions@github.com']);
             await exec.exec('git', ['add', 'CHANGELOG.md']);
             await exec.exec('git', ['commit', '-m', `docs: Add changelog entry for PR #${context.issue.number} [skip ci]`]);
             await exec.exec('git', ['push']);
 
-            // Add comment
             await github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
@@ -228,7 +212,6 @@ jobs:
               Please review and adjust if needed.`
             });
 
-            // Remove label if present
             try {
               await github.rest.issues.removeLabel({
                 issue_number: context.issue.number,
@@ -256,14 +239,14 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v2
+        uses: astral-sh/setup-uv@v3
         with:
           version: "latest"
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.12"
 
       - name: Extract version and date
         id: version
@@ -286,7 +269,6 @@ jobs:
           changelog_file = Path('CHANGELOG.md')
           content = changelog_file.read_text()
 
-          # Replace Unreleased section with version section
           pattern = r'## \[Unreleased\](.*?)(?=\n## \[|$)'
           replacement = f'## [{version}] - {date}\\1\\n\\n## [Unreleased]\\n\\n'
 
@@ -308,7 +290,7 @@ jobs:
           git push
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
           name: Release ${{ steps.version.outputs.version }}
