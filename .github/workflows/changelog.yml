@@ -1,84 +1,57 @@
-name: Changelog Management
+name: Changelog Workflow
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened]
-    branches: [main]
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - labeled
   issue_comment:
-    types: [created]
-  push:
-    tags:
-      - "v*"
+    types:
+      - created
 
 jobs:
-  validate-changelog:
-    if: github.event_name == 'pull_request'
+  check-changelog:
     runs-on: ubuntu-latest
-    name: Validate Changelog Format
+    name: Check for Changelog Entry
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@v3
-        with:
-          version: "latest"
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.13"
-
-      - name: Validate changelog format
-        run: |
-          python << 'EOF'
-          import re
-          from pathlib import Path
-
-          changelog_file = Path('CHANGELOG.md')
-          if not changelog_file.exists():
-              print("❌ CHANGELOG.md file not found!")
-              exit(1)
-
-          content = changelog_file.read_text()
-
-          # Check for required sections
-          required_patterns = [
-              r'# Changelog',
-              r'## \[Unreleased\]',
-              r'### (Added|Changed|Deprecated|Removed|Fixed|Security)',
-          ]
-
-          for pattern in required_patterns:
-              if not re.search(pattern, content):
-                  print(f"❌ Missing required pattern: {pattern}")
-                  exit(1)
-
-          print("✅ Changelog format is valid")
-          EOF
-
-      - name: Check for changelog entries
+      - name: Check if changelog entry exists
         id: check-changelog
-        run: |
-          python << 'EOF'
-          import re
-          from pathlib import Path
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
 
-          changelog_file = Path('CHANGELOG.md')
-          content = changelog_file.read_text()
+            const changelogPath = path.join(process.cwd(), 'CHANGELOG.md');
 
-          unreleased_match = re.search(r'## \[Unreleased\](.*?)(?=## \[|$)', content, re.DOTALL)
-          if unreleased_match:
-              unreleased_content = unreleased_match.group(1)
-              if re.search(r'### (Added|Changed|Deprecated|Removed|Fixed|Security).*?\n- ', unreleased_content, re.DOTALL):
-                  print("has_entries=true")
-                  exit(0)
+            if (!fs.existsSync(changelogPath)) {
+              core.setOutput('has_entries', 'false');
+              return;
+            }
 
-          print("has_entries=false")
-          EOF
+            const changelogContent = fs.readFileSync(changelogPath, 'utf8');
 
-      - name: Comment on missing changelog
+            // Check for entries under Unreleased section
+            const unreleasedMatch = changelogContent.match(/## \[Unreleased\](.*?)(?=## |\Z)/s);
+
+            if (unreleasedMatch && unreleasedMatch[1].trim()) {
+              core.setOutput('has_entries', 'true');
+            } else {
+              core.setOutput('has_entries', 'false');
+            }
+
+            // Check for PR number in changelog
+            const prNumber = context.issue.number;
+            const hasPRReference = new RegExp(`#${prNumber}`).test(changelogContent);
+            core.setOutput('has_pr_reference', hasPRReference.toString());
+
+      - name: Comment on missing changelog entry
         if: steps.check-changelog.outputs.has_entries == 'false'
         uses: actions/github-script@v7
         with:
@@ -87,47 +60,31 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `## ⚠️ Changelog Validation Failed
+              body: `### Changelog Entry Required
 
-            This pull request doesn't include proper changelog entries in the **Unreleased** section.
+              This pull request requires a changelog entry in \`CHANGELOG.md\` for the release notes.
 
-            ### Required Format
+              The changelog should be added to the **Unreleased** section with one of the following categories:
+              - **Added** for new features
+              - **Changed** for changes in existing functionality
+              - **Deprecated** for soon-to-be removed features
+              - **Removed** for now-removed features
+              - **Fixed** for any bug fixes
+              - **Security** for security-related updates
 
-            Please add your changes to \`CHANGELOG.md\` under the **Unreleased** section using this format:
+              ### Example
 
-            \`\`\`markdown
-            ## [Unreleased]
+              \`\`\`markdown
+              ## [Unreleased]
 
-            ### Added
-            - Your new feature description [#${context.issue.number}](${context.payload.pull_request.html_url})
+              ### Added
+              - Support for nested serializer error handling [#123](https://github.com/...)
 
-            ### Fixed
-            - Bug fix description [#${context.issue.number}](${context.payload.pull_request.html_url})
-            \`\`\`
+              ### Fixed
+              - Issue with pagination metadata formatting [#124](https://github.com/...)
+              \`\`\`
 
-            ### Categories
-
-            Use the appropriate category:
-            - **Added** for new features
-            - **Changed** for changes in existing functionality
-            - **Deprecated** for soon-to-be removed features
-            - **Removed** for now removed features
-            - **Fixed** for any bug fixes
-            - **Security** in case of vulnerabilities
-
-            ### Example
-
-            \`\`\`markdown
-            ## [Unreleased]
-
-            ### Added
-            - Support for nested serializer error handling [#123](https://github.com/...)
-
-            ### Fixed
-            - Issue with pagination metadata formatting [#124](https://github.com/...)
-            \`\`\`
-
-            Please update the changelog and push the changes to this branch. 🙏`
+              Please update the changelog and push the changes to this branch. 🙏`
             });
 
       - name: Add label if no changelog
@@ -139,21 +96,20 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              labels: ['needs-changelog']
-            });
+              labels: ['needs changelog']
+            })
 
-  add-changelog-entry:
-    if: github.event_name == 'issue_comment' && contains(github.event.comment.body, '/add-changelog')
+  update-changelog-for-release:
+    needs: check-changelog
     runs-on: ubuntu-latest
-    name: Add Structured Changelog Entry
+    name: Update Changelog for Release
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Add structured changelog entry
+      - name: Check if changelog entry exists for release
+        id: check-changelog-for-release
         uses: actions/github-script@v7
         with:
           script: |
@@ -161,142 +117,90 @@ jobs:
             const path = require('path');
 
             const changelogPath = path.join(process.cwd(), 'CHANGELOG.md');
-            let changelog = fs.existsSync(changelogPath) ? fs.readFileSync(changelogPath, 'utf8') : '# Changelog\n\n';
 
-            const { data: pr } = await github.rest.pulls.get({
-              pull_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo
-            });
-
-            const { data: labels } = await github.rest.issues.listLabelsOnIssue({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo
-            });
-
-            let category = 'Changed';
-            if (labels.some(label => label.name === 'feature' || label.name === 'enhancement')) category = 'Added';
-            if (labels.some(label => label.name === 'bug')) category = 'Fixed';
-            if (labels.some(label => label.name === 'documentation')) category = 'Changed';
-            if (labels.some(label => label.name === 'security')) category = 'Security';
-            if (labels.some(label => label.name === 'breaking')) category = 'Changed';
-
-            const entry = `### ${category}\n\n- ${pr.title} ([#${context.issue.number}](${pr.html_url}))\n`;
-
-            const unreleasedPattern = /(## \[Unreleased\]\n\n)/;
-            if (unreleasedPattern.test(changelog)) {
-              changelog = changelog.replace(unreleasedPattern, `$1${entry}`);
-            } else {
-              changelog = `## [Unreleased]\n\n${entry}\n${changelog}`;
+            if (!fs.existsSync(changelogPath)) {
+              core.setFailed('Changelog file not found.');
+              return;
             }
 
-            fs.writeFileSync(changelogPath, changelog);
+            const changelogContent = fs.readFileSync(changelogPath, 'utf8');
 
-            await exec.exec('git', ['config', 'user.name', 'github-actions']);
-            await exec.exec('git', ['config', 'user.email', 'github-actions@github.com']);
-            await exec.exec('git', ['add', 'CHANGELOG.md']);
-            await exec.exec('git', ['commit', '-m', `docs: Add changelog entry for PR #${context.issue.number} [skip ci]`]);
-            await exec.exec('git', ['push']);
+            // Check for entries under Unreleased section
+            const unreleasedMatch = changelogContent.match(/## \[Unreleased\](.*?)(?=## |\Z)/s);
 
-            await github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: `✅ Changelog entry added automatically under **${category}** section!
-
-            \`\`\`markdown
-            ${entry.trim()}
-            \`\`\`
-
-            Please review and adjust if needed.`
-            });
-
-            try {
-              await github.rest.issues.removeLabel({
-                issue_number: context.issue.number,
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                name: 'needs-changelog'
-              });
-            } catch (e) {
-              // Label might not exist
+            if (!unreleasedMatch || !unreleasedMatch[1].trim()) {
+              core.setFailed('No changelog entries found in the Unreleased section.');
+              return;
             }
+
+            // If we get here, there are entries
+            const hasEntries = true;
+            core.setOutput('has_entries', hasEntries.toString());
+
+      - name: Update Changelog for Release
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+
+            // Get current date in YYYY-MM-DD format
+            const today = new Date().toISOString().split('T')[0];
+
+            const changelogPath = path.join(process.cwd(), 'CHANGELOG.md');
+            let changelogContent = fs.readFileSync(changelogPath, 'utf8');
+
+            // Extract the Unreleased section
+            const unreleasedMatch = changelogContent.match(/(## \[Unreleased\].*?)(?=## |\Z)/s);
+
+            if (!unreleasedMatch) {
+              core.setFailed('Could not find Unreleased section in changelog.');
+              return;
+            }
+
+            // Get the content of the Unreleased section
+            const unreleasedContent = unreleasedMatch[0];
+
+            // Replace [Unreleased] with current date formatted as YYYY-MM-DD
+            const updatedChangelog = changelogContent.replace(/## \[Unreleased\].*?(?=## |\Z)/s, `## [${today}]`);
+
+            fs.writeFileSync(changelogPath, updatedChangelog);
 
   create-release:
-    if: startsWith(github.ref, 'refs/tags/v')
+    needs: update-changelog-for-release
     runs-on: ubuntu-latest
-    name: Create Release and Update Changelog
-    permissions:
-      contents: write
-      pull-requests: write
+    name: Create Release
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Create Release
+        uses: actions/github-script@v7
         with:
-          fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { owner, repo } = context.repo;
+            const tag_name = context.ref.split('/').pop();
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@v3
-        with:
-          version: "latest"
+            // Get the content of the changelog file for release notes
+            const fs = require('fs');
+            const path = require('path');
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.13"
+            const changelogPath = path.join(process.cwd(), 'CHANGELOG.md');
+            let changelogContent = fs.readFileSync(changelogPath, 'utf8');
 
-      - name: Extract version and date
-        id: version
-        run: |
-          VERSION=${GITHUB_REF#refs/tags/v}
-          DATE=$(date +%Y-%m-%d)
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "date=$DATE" >> $GITHUB_OUTPUT
+            const unreleasedMatch = changelogContent.match(/## \[Unreleased\].*?(?=## |\Z)/s);
 
-      - name: Update changelog for release
-        run: |
-          python << 'EOF'
-          import re
-          from pathlib import Path
-          import os
+            if (!unreleasedMatch) {
+              core.setFailed('Could not find Unreleased section in changelog.');
+              return;
+            }
 
-          version = os.environ['VERSION']
-          date = os.environ['DATE']
-
-          changelog_file = Path('CHANGELOG.md')
-          content = changelog_file.read_text()
-
-          pattern = r'## \[Unreleased\](.*?)(?=\n## \[|$)'
-          replacement = f'## [{version}] - {date}\\1\\n\\n## [Unreleased]\\n\\n'
-
-          new_content = re.sub(pattern, replacement, content, flags=re.DOTALL)
-
-          changelog_file.write_text(new_content)
-          print(f"✅ Updated changelog for version {version}")
-          EOF
-        env:
-          VERSION: ${{ steps.version.outputs.version }}
-          DATE: ${{ steps.version.outputs.date }}
-
-      - name: Commit changelog update
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git add CHANGELOG.md
-          git commit -m "docs: Update changelog for release ${{ steps.version.outputs.version }} [skip ci]"
-          git push
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ github.ref_name }}
-          name: Release ${{ steps.version.outputs.version }}
-          body_path: CHANGELOG.md
-          draft: false
-          prerelease: false
-          generate_release_notes: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            // Create release with the content from the Unreleased section
+            await github.rest.repos.createRelease({
+              owner: owner,
+              repo: repo,
+              tag_name: tag_name,
+              name: tag_name,
+              body: unreleasedMatch[0]
+            });
