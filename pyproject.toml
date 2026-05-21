@@ -72,7 +72,7 @@ select = [
 ignore = [
     "E501", # line too long, handled by ruff format
     "B008", # do not perform function calls in argument defaults
-    "C901", # too complex
+    "C901",
 ]
 
 [tool.ruff.lint.isort]
