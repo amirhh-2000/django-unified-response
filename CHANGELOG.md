@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.1](https://github.com/amirhh-2000/django-unified-response/compare/v0.2.0...v2.0.1) (2026-05-23)
+
+
+### Features
+
+* trigger first automated release Release-As: 2.0.1 ([f8c328f](https://github.com/amirhh-2000/django-unified-response/commit/f8c328f7bfc53ebb5e6e40bc53de5e4b374f0e71))
+
+
+### Miscellaneous Chores
+
+* force set version baseline to match PyPI ([f889510](https://github.com/amirhh-2000/django-unified-response/commit/f8895109020b8ec050745832c2be9e2659bc347b))
+
 ## [2.0.0](https://github.com/amirhh-2000/django-unified-response/compare/v0.1.0...v0.2.0) (2026-05-21)
 
 

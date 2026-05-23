@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "django-unified-response"
-version = "2.0.0"
+version = "2.0.1"
 authors = [{ name = "Amir Hossein", email = "amirse7997@gmail.com" }]
 description = "A Django library for standardized API responses."
 readme = "README.md"
