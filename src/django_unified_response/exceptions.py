@@ -36,7 +36,7 @@ class ValidationException(BaseAPIException):
         super().__init__(message, code, details)
 
         if details is None:
-            self.details = {"error": self.default_message}
+            self.details = []
 
 
 class AuthenticationFailedException(BaseAPIException):
