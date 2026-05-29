@@ -1,9 +1,13 @@
+import logging
+
 from rest_framework import status as http_status
 from rest_framework.response import Response
 from rest_framework.views import exception_handler
 
 from django_unified_response.conf import dur_settings
 from django_unified_response.utils import camelize_keys
+
+logger = logging.getLogger(__name__)
 
 
 def unified_exception_handler(exc, context):
@@ -18,8 +22,13 @@ def unified_exception_handler(exc, context):
         return response
 
     if response is None:
+        logger.exception(
+            "Unhandled exception caught by unified_exception_handler: %s",
+            exc,
+            exc_info=exc,
+        )
         response = Response(
-            {"detail": str(exc)},
+            {"detail": "Internal server error."},
             status=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
