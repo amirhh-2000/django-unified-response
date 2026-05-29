@@ -5,7 +5,6 @@ from rest_framework.response import Response
 from rest_framework.views import exception_handler
 
 from django_unified_response.conf import dur_settings
-from django_unified_response.utils import camelize_keys
 
 logger = logging.getLogger(__name__)
 
@@ -71,6 +70,7 @@ def unified_exception_handler(exc, context):
             error_code=error_code,
             message=message,
             details=details if details else None,
+            camelcase=dur_settings.CAMELCASE_KEYS,
         )
     else:
         unified_data = formatter.format_error(
@@ -78,9 +78,6 @@ def unified_exception_handler(exc, context):
             message=message,
             details=None,
         )
-
-    if dur_settings.CAMELCASE_KEYS:
-        unified_data = camelize_keys(unified_data)
 
     response.data = unified_data
     return response

@@ -1,3 +1,6 @@
+from .utils import camelize_keys
+
+
 class BaseFormatter:
     """
     Abstract base class for all response formatters.
@@ -15,21 +18,28 @@ class BaseFormatter:
 
 
 class DefaultFormatter(BaseFormatter):
-    def format_success(self, data, meta=None):
+    def format_success(self, data, meta=None, camelcase=False):
+        meta = meta or {}
         return {
             "success": True,
-            "data": data,
-            "meta": meta or {},
+            "data": camelize_keys(data) if camelcase else data,
+            "meta": camelize_keys(meta) if camelcase else meta,
         }
 
-    def format_fail(self, error_code, message, details=None):
+    def format_fail(self, error_code, message, details=None, camelcase=False):
         return {
             "success": False,
             "error": {
                 "type": "Fail",
                 "code": error_code,
                 "message": message,
-                "details": details or [],
+                "details": [
+                    {
+                        "field": camelize_keys(d["field"]) if camelcase else d["field"],
+                        "issue": d["issue"],
+                    }
+                    for d in (details or [])
+                ],
             },
         }
 
