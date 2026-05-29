@@ -9,10 +9,12 @@ class BaseAPIException(APIException):
 
     def __init__(self, message=None, code=None, details=None):
         super().__init__(detail=message or self.default_message)
-
-        self.message = message or self.default_message
         self.code = code or self.error_code
         self.details = details
+
+    @property
+    def message(self):
+        return str(self.detail)
 
 
 class NotFoundException(BaseAPIException):
